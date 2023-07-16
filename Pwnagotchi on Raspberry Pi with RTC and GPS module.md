@@ -138,6 +138,10 @@ Configuration is easy but not same for different pis. Carefully read my comments
       # with your pwnagotchi.
       ```
   
+  - Disable console on UART
+    
+    - Remove console=/dev/serial*,115200 in /boot/cmdline.txt
+    
   - Change pwnagotchi's config to add GPS.
     
     - Edit /etc/pwnagotchi/config.toml
@@ -337,8 +341,6 @@ We usually use battery to power our pwnagotchi. So, it's nice to optimize the po
   # Add this line
   dtoverlay=disable-wifi
   ```
-
-
 
 That's all!
 
