@@ -1,0 +1,36 @@
+
+# Custom
+dtoverlay=i2c-rtc,ds3231
+dtoverlay=pps-gpio,gpiopin=5
+# Switch PL011 and miniUart
+#enable_uart=1
+#dtoverlay=miniuart-bt
+#core_freq_min=400
+#core_freq=400
+# PWR LED Trigger: sd card activity.
+#dtparam=pwr_led_trigger=mmc0
+#dtparam=pwr_led_activelow=on
+# Disable the ACT LED.
+# dtparam=act_led_trigger=none
+# dtparam=act_led_activelow=off
+#temp_limit=65
+#temp_soft_limit=60
+
+# Customized
+dtoverlay=i2c-rtc,ds3231
+dtoverlay=pps-gpio,gpiopin=5
+dtparam=pwr_led_trigger=mmc0
+dtparam=pwr_led_activelow=on
+#dtparam=act_led_trigger=mmc0
+#dtparam=act_led_activelow=off
+enable_uart=1
+#dtoverlay=miniuart-bt
+temp_limit=55
+temp_soft_limit=50
+dtoverlay=disable-wifi
+arm_freq=900
+arm_freq_min=400
+gpu_freq=400
+core_freq=400
+over_voltage=-4
+over_voltage_min=-8
