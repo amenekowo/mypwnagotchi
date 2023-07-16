@@ -1,0 +1,11 @@
+[Unit]
+Description=Adafruit ssd1306 Pistat daemon
+After=network.target
+
+[Service]
+ExecStart=python3 /home/pi/python_scripts/pistats.py
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=multi-user.target

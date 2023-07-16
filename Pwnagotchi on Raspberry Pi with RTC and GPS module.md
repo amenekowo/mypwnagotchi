@@ -2,9 +2,17 @@
 
 My pwnagotchis:
 
+![](images/pwnagotchis.jpg)
+
+![](images/running_pwnagotchi.jpg)
+
+Sadly, I accidently shorted 3A+'s USB port and it is not working... But I will get the board replaced (that depends on element14's shipping time).
+
+So, let's get started armouring our pwnagotchis!
+
 ### Part one: Modules
 
-Because I want my pwnagotchi as compat as possible, I picked these modules:
+Because I want pwnagotchis as compat as possible, I picked these modules:
 
 - DS3231 for Pi
   
@@ -40,7 +48,8 @@ For my 3A+ with 2.13inch e-Paper HAT:
 
 ![](images/epaper-pcb.jpg)
 
-- All three modules uses 3.3V for VCC, so connect all VCCs to Pin 1 or 6. 1 is hard to weld (under the connector!) so I choose 6 for 3.3V.
+- We need to remove female connector on DS3231 module due to size problems.
+- All three modules uses 3.3V for VCC, so connect all VCCs to Pin 1 or 6. The 1 pin is hard to weld (under the connector!) so I choose 6 for 3.3V.
 - 2 is I2C SDA and 3 is I2C SCL. Because DS3231 and SSD1306 both use I2C interface, just simply connect these pads together. RTC module and screen has its own silk mark, so if your module is not like mine, you need to find out correspond pads. By the way, it's hard to weld 2 and 3 pin at first place, so be careful not to melt the plastic connector for e-paper screen.
 - 4 and 5 is Pi's miniUART. Pis don't have a lot UART interfaces, so our only choice is miniUART/PL011. For default, PL011 is for bluetooth and we need a constant connection via bluetooth, so our only choice is miniUART. (For Pi 4B, there are five PL011s so see below for 4B). Module's RX to Pi's TX and module's TX to Pi's RX. Simple.
 - Also, I want to use GPS module's PPS to feed the pi for time syncing. So, I connected module's PPS pin to 7 (GPIO5). Need extra config for this.
@@ -129,6 +138,24 @@ Configuration is easy but not same for different pis. Carefully read my comments
       # with your pwnagotchi.
       ```
   
+  - Change pwnagotchi's config to add GPS.
+    
+    - Edit /etc/pwnagotchi/config.toml
+    
+    ```toml
+    # Turn on GPS plugin.
+    main.plugins.gps.enabled = true
+    # Change 9600 to your GPS baudrate.
+    main.plugins.gps.speed = 9600
+    # For these switched miniuart and pl011, it's ttyAMA0.
+    # If you use miniuart for gps, it's ttyS0. If you use
+    # other uart interface on 4b, it should be ttyAMA* (
+    # star refers your uart id).
+    main.plugins.gps.device = "/dev/ttyS0"
+    ```
+    
+    Now you can go outside, waiting for your pwnagotchi to pwn a network, and check is there a coordinate on his screen. He should tell your location and height on his face. Cool!
+  
   - (Optional) Install gpsd & chrony to configure GPS timing
     
     - Enable PPS input 
@@ -161,7 +188,7 @@ Configuration is easy but not same for different pis. Carefully read my comments
         sudo ppstest /dev/pps0
         # which /dev/pps0 is your pps device. By default,
         # it's pps0 but check ls results for your number.
-        # If it outputs "OK", it's good!
+        # If it outputs "OK" every second, it's good!
         ```
     
     - Install gpsd & chrony
@@ -218,45 +245,101 @@ Configuration is easy but not same for different pis. Carefully read my comments
         # If you don't see GPS and PPS, check your config.
         ```
 
+- Configure SSD1306 screen
+  
+  For this, I used Adafruit's script and library for displaying. I modded it a little bit, because Pi's IP address is always 10.0.0.2 and meaningless to show.
+  
+  These steps mainly refereed from [Adafruit's OLED manual](https://learn.adafruit.com/adafruit-pioled-128x32-mini-oled-for-raspberry-pi/usage).
+  
+  - Install Adafruit's lib and test screen
+    
+    ```bash
+    # Install lib by pip
+    sudo pip3 install adafruit-circuitpython-ssd1306
+    # Test screen use my script. (You should copy the script
+    # to this directory first.) 
+    sudo python3 pistats.py
+    ```
+    
+    If everything is fine, your screen will show something. Type Ctrl+C to interrupt the script. If your screen displays, but abnormaly, check 
+  
+  - Add a service to system to run it automatically
+    
+    I don't use doc's original way to run script at boot, because it won't works at sometime (don't know why). So I wrote a systemd service file.
+    
+    - Edit service file's script path
+      
+      ```toml
+      # Change this line's path to anywhere your want to
+      ExecStart=python3 /home/pi/python_scripts/pistats.py
+      ```
+    
+    - Copy service to systemd dir
+      
+      ```bash
+      sudo cp pistats.py /usr/lib/systemd/system/
+      ```
+    
+    - Enable service
+      
+      ```bash
+      sudo systemctl enable --now pistats
+      ```
+      
+      Done! Now you should have a working RTC and screen and GPS on your pwnagotchi!
+
 ## Extra: Settings to optimize the power consumption
 
-We usually use battery to power our pwnagotchi. So, it's nice to optimize the power so we can run longer. Actually, it's hard to optimize the power usage because Pis are already run at a very low power (baseline 2.5-3W). But there are some options:
+We usually use battery to power our pwnagotchi. So, it's nice to optimize the power so we can run longer. Actually, it's hard to optimize the power usage because Pis are already run at a very low power (baseline 1-2W on Zero and 2.5-3W on other pis). But there are some options:
 
 - Undervoltage & Underclock CPU
   
   By the way, do this can also minimize the temperature of CPU. I applied these on Raspberry Pi 4B. 
   
-  1. Edit /boot/config.txt, add following to the end of the file.
-     
-     ```toml
-     # Temperature before limiting CPU clock to cool down.
-     temp_limit=55
-     temp_soft_limit=50
-     # CPU freq scaling (Only for 2B/3B/3A+/3B+/4B/Zero2,
-     # zero is efficient enough and SLOW enough so we don't
-     # need this.
-     # For my 4B, Minium CPU clock is 400Mhz and maxium is 
-     # 900Mhz. ~2min to enter AI mode.
-     arm_freq=900
-     arm_freq_min=400
-     # VideoCore freq limit. 
-     # !!! You may configured core_freq in "Configure GPS module"
-     # part !!! Don't get duplicated on this!
-     # (For 4B)
-     gpu_freq=400
-     core_freq=400
-     over_voltage=-4
-     over_voltage_min=-8
-     # For Rpi Zero
-     core_freq_min=250
-     core_freq=250
-     # Actually I haven't tried underclock Zero, because Zero's
-     # baseline power consumption is about 1W. Quite effiency.
-     # But for using miniUART, you need to have a fixed core_freq.
-     ```
+  - Edit /boot/config.txt, add following to the end of the file.
   
-  2. Reboot and see if it is stable.
+  ```toml
+  # Temperature before limiting CPU clock to cool down.
+  # Because I usually take my pwnagotchi with hand, these
+  # number is set low to not burn my hand qwq 
+  temp_limit=55
+  temp_soft_limit=50
+  # CPU freq scaling (Only for 2B/3B/3A+/3B+/4B/Zero2,
+  # zero is efficient enough and SLOW enough so we don't
+  # need this.
+  # For my 4B, Minium CPU clock is 400Mhz and maxium is 
+  # 900Mhz.
+  arm_freq=900
+  arm_freq_min=400
+  # VideoCore freq limit. 
+  # !!! You may configured core_freq in "Configure GPS module"
+  # part !!! Don't get duplicated on this.
+  # (For 4B)
+  gpu_freq=400
+  core_freq=400
+  over_voltage=-4
+  over_voltage_min=-8
+  # For Rpi Zero
+  core_freq_min=250
+  core_freq=250
+  # Actually I haven't tried underclock Zero, because Zero's
+  # baseline power consumption is about 1W, quite effiency.
+  # But for using miniUART, you need to have a fixed core_freq.
+  ```
+  
+  Reboot and see if it is stable. If it don't boot, change these number to something mild.
 
 - Disable onboard Wi-Fi (if you use a usb Wi-Fi adapter)
+  
+  - Edit /boot/config.txt
+  
+  ```toml
+  # Add this line
+  dtoverlay=disable-wifi
+  ```
 
-- 
+
+
+That's all!
+
+Thank you for reading this till the last! 
