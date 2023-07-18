@@ -1,16 +1,14 @@
-# Pwnagotchi with RTC and GPS module and more...
+# 给Pwnagotchi安装GPS、RTC模块和小屏幕
 
-My pwnagotchis:
+我的Pwnagotchi们：
 
 ![](images/pwnagotchis.jpg)
 
 ![](images/running_pwnagotchi.jpg)
 
-Sadly, I accidently shorted 3A+'s USB port and it is not working... But I will get the board replaced (that depends on element14's shipping time).
+可惜我在调试3A+的时候把它的USB短路了... 但我已经买了替换的板子（取决与易络盟的送货时间（可惜，易络盟上送货时间一拖再拖，还不如直接淘宝上买呢）。
 
-So, let's get started armouring our pwnagotchis!
-
-### Part one: Modules
+不管那些了，让我们开始吧！
 
 Because I want pwnagotchis as compat as possible, I picked these modules:
 
@@ -141,7 +139,7 @@ Configuration is easy but not same for different pis. Carefully read my comments
   - Disable console on UART
     
     - Remove console=/dev/serial*,115200 in /boot/cmdline.txt
-    
+  
   - Change pwnagotchi's config to add GPS.
     
     - Edit /etc/pwnagotchi/config.toml
